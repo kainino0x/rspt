@@ -10,6 +10,7 @@ use cgmath::{
 };
 use rand::Rng;
 use std::f64;
+use std::fmt;
 
 use camera::*;
 
@@ -25,6 +26,13 @@ struct Intersection<'a> {
     r: &'a Ray3,
     t: f64,
     n: Vec3,
+}
+
+impl<'a> fmt::Debug for Intersection<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "(r: ({:?} -> {:?}), t: {:?}, n: {:?})",
+                self.r.origin, self.r.direction, self.t, self.n)
+    }
 }
 
 impl<'a> Intersection<'a> {
@@ -44,16 +52,15 @@ fn at(r: &Ray3, t: f64) -> Point3 {
 impl Intersect for Sphere {
     fn intersect<'a>(&self, r: &'a Ray3) -> Option<Intersection<'a>> {
         let relcenter = r.origin.sub_p(&self.center);
-        let a = dot(r.direction, r.direction);
         let b = 2.0 * dot(r.direction, relcenter);
         let c = dot(relcenter, relcenter) - self.radius * self.radius;
-        let sqdisc = b * b - 4.0 * a * c;
-        if sqdisc < 0.0 {
+        let disc = b * b - 4.0 * c;
+        if disc < 0.0 {
             return None;
         }
-        let disc = sqdisc.sqrt();
-        let t1 = (-b - disc) / (2.0 * a);
-        let t2 = (-b + disc) / (2.0 * a);
+        let sqrtdisc = disc.sqrt();
+        let t1 = (-b - sqrtdisc) * 0.5;
+        let t2 = (-b + sqrtdisc) * 0.5;
         if t2 < 0.0 {
             return None;
         }
@@ -104,10 +111,10 @@ fn diffuse<'a>(isx: &Intersection<'a>) -> Ray3 {
     let z = f64::max(0.0, 1.0 - u1).sqrt();
 
     let nor = isx.n;
-    let tan = isx.n.cross(&Vec3::unit_x());
+    let tan = isx.n.cross(&Vec3::unit_x()).normalize();
     let bin = nor.cross(&tan);
 
-    let dir = tan.mul_s(x) + bin.mul_s(y) + nor.mul_s(z);
+    let dir = (tan.mul_s(x) + bin.mul_s(y) + nor.mul_s(z)).normalize();
     Ray3::new(isx.p().add_v(&dir.mul_s(0.0001)), dir)
 }
 
@@ -117,7 +124,9 @@ impl Scene {
         let mut ret: Option<(&'a Geometry, Intersection<'a>)> = None;
         for ref g in &self.geoms {
             match g.geom.intersect(r) {
-                Some(ix) => if ix.t < tmin { ret = Some((g, ix)); },
+                Some(ix) => if ix.t < tmin {
+                    ret = Some((g, ix));
+                },
                 None => {}
             }
         }
@@ -136,6 +145,10 @@ impl Scene {
                 if g.light {
                     LIGHT_COLOR
                 } else {
+                    //let d = scatter(&isx);
+                    //Vec3::new(isx.n.x.abs(),
+                    //          isx.n.y.abs(),
+                    //          isx.n.z.abs())
                     MAT_COLOR * self.trace(&scatter(&isx), depth - 1)
                 }
             },
@@ -183,22 +196,23 @@ fn render(s: &Scene, cam: &Camera) {
     image.save("render.png").ok().expect("Failed to save rendered image");
 }
 
-const   MAT_COLOR: Vec3 = Vec3 { x: 0.95, y: 0.95, z: 0.95 };
-const LIGHT_COLOR: Vec3 = Vec3 { x: 2.00, y: 2.00, z: 2.00 };
-const MAX_DEPTH: u32 = 5;
-const ITERS: u32 = 25;
-const BIG: f64 = 100_000.0;
-const BOXRAD: f64 = 2000.0;
+const   MAT_COLOR: Vec3 = Vec3 { x: 0.98, y: 0.98, z: 0.98 };
+const LIGHT_COLOR: Vec3 = Vec3 { x: 5.00, y: 5.00, z: 5.00 };
+const MAX_DEPTH: u32 = 1; //5;
+const ITERS: u32 = 1; //100;
+const BIG: f64 = 100.0;
+const BOXRAD: f64 = 2.0;
 const WIDTH: u32 = 200;
 const HEIGHT: u32 = 200;
 
 fn main() {
     let s = Scene {
-        bg: Color::new(0.3, 0.3, 0.3),
+        bg: Color::new(0.2, 0.2, 0.2),
         geoms: vec![
             sphere(true,  Point3::new(0.0, 0.0, 2.0), 0.5),
             sphere(false, Point3::new(0.0, 0.0, 0.0), 1.0),
             sphere(false, Point3::new( BIG + BOXRAD, 0.0, 0.0), BIG),
+            sphere(false, Point3::new(-10.0 - BOXRAD, 0.0, 0.0), 10.0),
             //sphere(false, Point3::new(-BIG - BOXRAD, 0.0, 0.0), BIG),
             //sphere(false, Point3::new(0.0,  BIG + BOXRAD, 0.0), BIG),
             ////sphere(false, Point3::new(0.0, -BIG - BOXRAD, 0.0), BIG),
