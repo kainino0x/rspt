@@ -4,7 +4,6 @@ extern crate rand;
 
 use rand::Rng;
 use std::f64;
-use std::fmt;
 
 use camera::*;
 use defns::*;
