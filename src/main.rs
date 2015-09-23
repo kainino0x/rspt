@@ -97,7 +97,7 @@ fn diffuse<'a>(isx: &Intersection<'a>) -> Ry {
     let bin = nor.cross(&tan);
 
     let dir = (tan.mul_s(x) + bin.mul_s(y) + nor.mul_s(z)).normalize();
-    Ry::new(isx.p().add_v(&dir.mul_s(0.0001)), dir)
+    Ry::new(isx.p().add_v(&dir.mul_s(0.00001)), dir)
 }
 
 impl Scene {
@@ -179,31 +179,28 @@ fn render(s: &Scene, cam: &Camera) {
     image.save("render.png").ok().expect("Failed to save rendered image");
 }
 
-const   MAT_COLOR: Vt = Vt { x: 0.98, y: 0.98, z: 0.98 };
+const   MAT_COLOR: Vt = Vt { x: 0.95, y: 0.95, z: 0.95 };
 const LIGHT_COLOR: Vt = Vt { x: 5.00, y: 5.00, z: 5.00 };
 const MAX_DEPTH: u32 = 5;
-const ITERS: u32 = 25;
-const BIG: f64 = 1e5;
-const BOXRAD: f64 = 2.0;
+const ITERS: u32 = 100;
 const DIM: (u32, u32) = (200, 200);
 
 fn main() {
     let s = Scene {
         bg: Color::new(0.2, 0.2, 0.2),
         geoms: vec![
-            sphere(true,  Pt::new(0.0, 0.0, 2.0), 0.5),
+            sphere(true,  Pt::new(0.0, 0.0, 102.), 100.005),
             sphere(false, Pt::new(0.0, 0.0, 0.0), 1.0),
-            sphere(false, Pt::new( BIG + BOXRAD, 0.0, 0.0), BIG),
-            sphere(false, Pt::new(-BIG - BOXRAD, 0.0, 0.0), BIG),
-            sphere(false, Pt::new(0.0,  BIG + BOXRAD, 0.0), BIG),
-            //sphere(false, Pt::new(0.0, -BIG - BOXRAD, 0.0), BIG),
-            sphere(false, Pt::new(0.0, 0.0,  BIG + BOXRAD), BIG),
-            sphere(false, Pt::new(0.0, 0.0, -BIG - BOXRAD), BIG),
+            sphere(false, Pt::new(1002., 0.0, 0.0), 1000.),
+            sphere(false, Pt::new(-1002., 0.0, 0.0), 1000.),
+            sphere(false, Pt::new(0.0, 1002., 0.0), 1000.),
+            sphere(false, Pt::new(0.0, 0.0, 1002.), 1000.),
+            sphere(false, Pt::new(0.0, 0.0, -1002.), 1000.),
         ],
     };
 
     let c = Camera::new(
-        Pt::new(0.0, -10.0, 0.0),
+        Pt::new(0.0, -6.0, 0.0),
         Pt::new(0.0, 0.0, 0.0),
         Vt::new(0.0, 0.0, 1.0),
         DIM, 0.5);
