@@ -1,48 +1,21 @@
-use cgmath::{
-    Ray,
-    Ray3,
-    Point,
-    Point3,
-    EuclideanVector,
-    Vector,
-    Vector3,
-};
-
+use defns::*;
 
 #[derive(Clone, Copy)]
-pub struct Camera {
-    eye: Point3<f64>,
-    view: Vector3<f64>,
-    up: Vector3<f64>,
-    right: Vector3<f64>,
-    pub width: u32,
-    pub height: u32,
-    fovy: f64
-}
+pub struct Camera { pub dim: (u32, u32), o: Pt, v: Vt, u: Vt, r: Vt }
 
 impl Camera {
-    fn ray_clip_space(&self, x: f64, y: f64) -> Ray3<f64> {
-        let scaled_up = self.up.mul_s(self.fovy.tan());
-        let scaled_right = self.right.mul_s(self.fovy.tan() *
-                                    (self.width as f64 / self.height as f64));
-        let d = self.view.add_v(&scaled_up.mul_s(y)).add_v(&scaled_right.mul_s(x));
-        Ray::new(self.eye, d.normalize())
+    pub fn ray(&self, x: u32, y: u32) -> Ry  {
+        let xn = (x as f64) * 2.0 / (self.dim.0 as f64) - 1.0;
+        let yn = (y as f64) * 2.0 / (self.dim.1 as f64) - 1.0;
+        let d = self.v.add_v(&self.u.mul_s(-yn)).add_v(&self.r.mul_s(xn));
+        Ry::new(self.o, d.normalize())
     }
 
-    pub fn ray(&self, x: u32, y: u32) -> Ray3<f64>  {
-        let new_x =       (x as f64) * 2.0 / (self.width as f64) - 1.0;
-        let new_y = 1.0 - (y as f64) * 2.0 / (self.height as f64);
-        self.ray_clip_space(new_x, new_y)
-    }
-
-    pub fn new(eye: Point3<f64>, center: Point3<f64>, up: Vector3<f64>,
-               width: u32, height: u32, fovy: f64) -> Camera {
-        let norm_up = up.normalize();
-        let norm_view = center.sub_p(&eye).normalize();
-        let norm_right = norm_view.cross(&norm_up);
-        let perp_up = norm_right.cross(&norm_view);
-        Camera { eye: eye, view: norm_view, up: perp_up, right: norm_right,
-            width: width, height: height, fovy: fovy }
-
+    pub fn new(eye: Pt, ctr: Pt, up: Vt, dim: (u32, u32), fovy: f64) -> Camera {
+        let aspect = dim.0 as f64 / dim.1 as f64;
+        let v = ctr.sub_p(&eye).normalize();
+        let r = v.cross(&up.normalize()).mul_s(fovy.tan() * aspect);
+        let u = r.normalize().cross(&v).mul_s(fovy.tan());
+        Camera { dim: dim, o: eye, v: v, u: u, r: r }
     }
 }
